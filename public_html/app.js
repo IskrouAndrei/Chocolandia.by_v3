@@ -608,6 +608,9 @@ const routes = [
   { pattern: /^\/?$/, handler: renderHome },
   { pattern: /^\/constructor\/?$/, handler: renderConstructor },
   { pattern: /^\/collections\/?$/, handler: renderCollections },
+  { pattern: /^\/collections\/gifts\/for-mom\/?$/, handler: () => renderCollectionPage('gifts', 'for-mom') },
+  { pattern: /^\/collections\/for-mom\/?$/, handler: () => renderCollectionPage('gifts', 'for-mom') },
+  { pattern: /^\/collections\/([^/]+)\/([^/]+)\/?$/, handler: (m) => renderCollectionPage(m[1], m[2]) },
   { pattern: /^\/collections\/([^/]+)\/?$/, handler: (m) => renderCollectionPage(m[1]) },
   { pattern: /^\/product\/([^/]+)\/?$/, handler: (m) => renderProductPage(m[1]) },
   { pattern: /^\/privacy\/?$/, handler: renderPrivacy },
@@ -713,6 +716,8 @@ function updatePageTitle(path) {
     '/': 'Chocolandia.by — Шоколад ручной работы с доставкой по Беларуси',
     '/collections': 'Все коллекции — Chocolandia.by',
     '/b2b': 'Корпоративным клиентам — Chocolandia.by',
+    '/collections/gifts/for-mom': 'Подарочные наборы «Для мамы» — Chocolandia.by',
+    '/collections/for-mom': 'Подарочные наборы «Для мамы» — Chocolandia.by',
   };
   if (titleMap[path]) {
     document.title = titleMap[path];
@@ -1096,21 +1101,22 @@ async function renderHome() {
   <section class="hero-slider" id="hero-slider">
     <div class="slider-wrapper">
       
-      <!-- Slide 1: Вступление -->
+      <!-- Slide 1: Для мамы -->
       <div class="hero-slide active" data-slide="0">
         <div class="hero-bg">
-          <img src="/assets/images/IMG_7500.webp" alt="Chocolandia — шоколад ручной работы" loading="lazy">
+          <img src="/assets/images/hero_slider_mother.webp" alt="Подарочные наборы ко Дню матери — Chocolandia" loading="eager">
         </div>
         <div class="hero-content">
+          <div class="hero-badge" style="background:rgba(238,154,179,0.25);border:1px solid rgba(238,154,179,0.5);color:#ffd1dc">Ко Дню матери</div>
           <h1 class="hero-title">
-            Эксклюзивный шоколад ручной работы
+            Подарочные наборы <br>«Для мамы»
           </h1>
-          <p class="hero-subtitle" style="font-size: 1.125rem; opacity: 0.9;">
-            Шоколадные наборы, трюфели, клубника и финики в шоколаде
+          <p class="hero-subtitle" style="font-size: 1.125rem; opacity: 0.95;">
+            Нежнейший бельгийский шоколад с сублимированными ягодами и орехами. Идеальный способ сказать «Спасибо» главному человеку.
           </p>
           <div class="hero-actions">
-            <button class="btn btn-primary" data-route="/collections">Смотреть коллекции</button>
-            <button class="btn btn-outline-white" id="hero-process">О нас</button>
+            <button class="btn btn-primary" data-route="/collections/gifts/for-mom">В каталог «Для мамы»</button>
+            <button class="btn btn-outline-white" data-route="/collections">Все коллекции</button>
           </div>
         </div>
       </div>
@@ -1235,15 +1241,15 @@ async function renderHome() {
         </a>
 
         <!-- Featured dark card -->
-        <a href="/collections/${escapeHtml(extraB.slug || 'gifts')}"
-           data-route="/collections/${escapeHtml(extraB.slug || 'gifts')}"
+        <a href="/collections/${escapeHtml(extraB.slug || 'gifts')}/for-mom"
+           data-route="/collections/${escapeHtml(extraB.slug || 'gifts')}/for-mom"
            class="bento-featured-card bento-featured">
-          <div class="bento-featured-badge">Популярное</div>
+          <div class="bento-featured-badge" style="background:var(--color-primary);color:#ffd1dc;border:1px solid rgba(238,154,179,0.4)">🌸 Каталог «Для мамы»</div>
           <div class="bento-featured-text">
             <h3>${escapeHtml(extraB.name || 'Подарочные наборы')}</h3>
-            <p>${escapeHtml(extraB.description || 'Изысканные подарочные наборы в фирменной упаковке.')}</p>
+            <p>16 праздничных наборов ко Дню матери из бельгийского шоколада с ягодами и орехами.</p>
             <span class="btn-ghost">
-              Смотреть наборы
+              Смотреть каталог «Для мамы»
               <span class="material-symbols-outlined" style="font-size:14px">arrow_forward</span>
             </span>
           </div>
@@ -1462,15 +1468,30 @@ async function renderCollections() {
 /* ============================================================
    PAGE: COLLECTION PRODUCT GRID
    ============================================================ */
-async function renderCollectionPage(slug) {
+async function renderCollectionPage(slug, subCatalog = null) {
   if (slug === 'truffles') {
     return renderConstructor();
   }
   const data = State.data;
   const collection = data?.collections.find(c => c.slug === slug);
-  const allProducts = data?.products.filter(p => p.collectionId === slug) || [];
-
   if (!collection) return renderNotFound();
+
+  let allProducts = data?.products.filter(p => p.collectionId === slug) || [];
+
+  const isMomCatalog = (slug === 'gifts' && subCatalog === 'for-mom');
+  const momProductsCount = allProducts.filter(p => p.catalog === 'for-mom').length;
+  const totalProductsCount = allProducts.length;
+
+  if (isMomCatalog) {
+    allProducts = allProducts.filter(p => p.catalog === 'for-mom');
+  }
+
+  const pageTitle = isMomCatalog ? 'Подарочные наборы «Для мамы»' : collection.name;
+  const pageDesc = isMomCatalog
+    ? 'Праздничная коллекция подарочных наборов ручной работы ко Дню матери из молочного и белого шоколада с добавлением сублимированных ягод и орехов. Срок годности 2 месяца.'
+    : collection.description;
+  const pageBadge = isMomCatalog ? 'Ко Дню матери' : collection.badge;
+  const heroImage = isMomCatalog ? '/assets/images/hero_slider_mother.webp' : imgPath(collection.image);
 
   return `
 <div>
@@ -1479,8 +1500,8 @@ async function renderCollectionPage(slug) {
     <!-- Collection Hero -->
     <div class="collection-hero">
       <div class="collection-hero-bg">
-        <img src="${imgPath(collection.image)}"
-             alt="${escapeHtml(collection.name)}"
+        <img src="${heroImage}"
+             alt="${escapeHtml(pageTitle)}"
              onerror="this.src='/assets/images/hero_banner.png'" />
       </div>
       <div class="container">
@@ -1489,15 +1510,50 @@ async function renderCollectionPage(slug) {
           <span class="material-symbols-outlined">chevron_right</span>
           <a href="/collections" data-route="/collections" style="color:rgba(255,255,255,0.6)">Каталог</a>
           <span class="material-symbols-outlined">chevron_right</span>
-          <span class="active" style="color:white">${escapeHtml(collection.name)}</span>
+          ${isMomCatalog ? `
+            <a href="/collections/gifts" data-route="/collections/gifts" style="color:rgba(255,255,255,0.6)">Подарочные наборы</a>
+            <span class="material-symbols-outlined">chevron_right</span>
+            <span class="active" style="color:white">Для мамы</span>
+          ` : `
+            <span class="active" style="color:white">${escapeHtml(collection.name)}</span>
+          `}
         </div>
         <div class="collection-hero-content">
-          ${collection.badge ? `<div class="collection-hero-badge">${escapeHtml(collection.badge)}</div>` : ''}
-          <h1 class="collection-hero-title">${escapeHtml(collection.name)}</h1>
-          <p class="collection-hero-desc">${escapeHtml(collection.description)}</p>
+          ${pageBadge ? `<div class="collection-hero-badge">${escapeHtml(pageBadge)}</div>` : ''}
+          <h1 class="collection-hero-title">${escapeHtml(pageTitle)}</h1>
+          <p class="collection-hero-desc">${escapeHtml(pageDesc)}</p>
         </div>
       </div>
     </div>
+
+    <!-- Subcatalog tabs for gifts -->
+    ${slug === 'gifts' ? `
+    <div style="background:var(--color-surface);padding:1.5rem 0 0.5rem;border-bottom:1px solid rgba(0,0,0,0.06)">
+      <div class="container" style="display:flex;gap:0.75rem;align-items:center;flex-wrap:wrap;">
+        <span style="font-family:var(--font-label);font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--color-on-surface-variant);margin-right:0.25rem">Каталог:</span>
+        <a href="/collections/gifts" data-route="/collections/gifts" class="filter-chip ${!isMomCatalog ? 'active' : ''}" style="text-decoration:none">
+          Все наборы (${totalProductsCount})
+        </a>
+        <a href="/collections/gifts/for-mom" data-route="/collections/gifts/for-mom" class="filter-chip ${isMomCatalog ? 'active' : ''}" style="text-decoration:none">
+          🌸 Для мамы (${momProductsCount})
+        </a>
+      </div>
+    </div>
+    ` : ''}
+
+    ${slug === 'gifts' && !isMomCatalog ? `
+    <div class="container" style="padding-top:1.5rem">
+      <div style="background:linear-gradient(135deg, rgba(238,154,179,0.18), rgba(74,38,32,0.06));border:1px solid rgba(238,154,179,0.35);border-radius:var(--radius-md);padding:1.25rem 1.5rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem">
+        <div>
+          <div style="font-family:var(--font-display);font-weight:700;font-size:1.125rem;color:var(--color-primary)">🌸 Новый праздничный каталог «Для мамы»</div>
+          <div style="font-size:0.875rem;color:var(--color-on-surface-variant);margin-top:0.25rem">16 авторских наборов из молочного и белого шоколада с ягодами и орехами</div>
+        </div>
+        <a href="/collections/gifts/for-mom" data-route="/collections/gifts/for-mom" class="btn btn-primary" style="font-size:0.75rem;padding:0.5rem 1.25rem;white-space:nowrap">
+          Смотреть «Для мамы» (${momProductsCount})
+        </a>
+      </div>
+    </div>
+    ` : ''}
 
     <div style="background:var(--color-surface);padding:1.5rem 0 0">
       <div class="filter-bar">
@@ -1569,6 +1625,9 @@ async function renderProductPage(slug) {
         <span class="material-symbols-outlined">chevron_right</span>
         ${collection ? `<a href="/collections/${escapeHtml(collection.slug)}"
              data-route="/collections/${escapeHtml(collection.slug)}">${escapeHtml(collection.name)}</a>
+          <span class="material-symbols-outlined">chevron_right</span>` : ''}
+        ${product.catalog === 'for-mom' ? `<a href="/collections/gifts/for-mom"
+             data-route="/collections/gifts/for-mom">Для мамы</a>
           <span class="material-symbols-outlined">chevron_right</span>` : ''}
         <span class="active">${escapeHtml(product.name)}</span>
       </div>
